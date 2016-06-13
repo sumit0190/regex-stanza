@@ -1,0 +1,67 @@
+;This file defines the 're' (short for regex) package for Stanza. It includes methods
+;for regex search, split and replace. More information on the methods is located above
+;the method definition
+
+;------------------------------------DEFINITIONS--------------------------------------
+
+;Define our package name
+defpackage re :
+   import core
+   import collections
+
+;Define the regex object that has two fields: 1) a vector containing all the
+;matches and matched groups 2) a hash with named capture group names as keys and
+;their corresponding captured groups as values(vectors)
+defstruct regex :
+   m: Vector<String>
+   g: HashTable<String,Vector<String>>
+
+defmethod print (o: OutputStream, r: regex) :
+   println(o, "Matches: %_" % [m(r)])
+   println(o, "Named capture groups: %_" % [g(r)])
+
+;This array will hold our matches found and matched groups
+var matches_found = Vector<String>()
+;And this map will hold the named capture group names and matches found
+var named_matches_found = HashTable<String,Vector<String>>()
+
+;------------------------------FUNCTIONS CALLED FROM C--------------------------------
+
+;This function is called from C to append to the global vector that contains
+;matches found
+extern defn append_matches_found (matched: ptr<byte>) -> int :
+   add(matches_found, String(matched))
+   return 0
+
+;This function is called from C to append to the global hash that contains named
+;groups and their matches found
+extern defn append_named_matches_found (name: ptr<byte>, matched: ptr<byte>) -> int :
+   if key?(named_matches_found, String(name)) == true:
+      add(get(named_matches_found, String(name)), String(matched))
+   else:
+      set(named_matches_found, String(name), Vector<String>())
+      add(get(named_matches_found, String(name)), String(matched))
+   return 0
+
+;-------------------------------FUNCTIONS DEFINED IN C--------------------------------
+
+;C-function to start a regex search
+extern pcre_search : (ptr<byte>, ptr<byte>) -> int
+
+;-----------------------------EXPOSED PUBLIC FUNCTIONS--------------------------------
+
+;Methods to access the regex object fields, since the struct itself is public
+public defn matches (r: regex) -> Vector<String> :
+   m(r)
+
+public defn groups (r: regex) -> HashTable<String,Vector<String>> :
+   g(r)
+
+;This is the regex-search function. Takes in two arguments: 1) the regex 2) the string
+;to search. Returns a regex object
+public lostanza defn regex-search (pattern: ref<String>, subject: ref<String>) -> ref<regex> :
+   call-c pcre_search(addr!(pattern.chars), addr!(subject.chars))
+   val final = regex(matches_found, named_matches_found)
+   matches_found = Vector<String>()
+   named_matches_found = HashTable<String,Vector<String>>()
+   return final

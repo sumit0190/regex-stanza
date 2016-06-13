@@ -1,0 +1,12 @@
+defpackage test:
+   import core
+   import collections
+   import re
+
+;Some examples
+;Example with named groups
+val x = regex-search(\<R>(?<intpart>\d+)\.(?<decpart>\d+)<R>, "3.33blhabaldfjdafd1.45")
+;The usual regex
+val y = regex-search("(\\w+):(\\d+)", "ruby:1234")
+print(x)
+print(y)
