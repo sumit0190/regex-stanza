@@ -14,4 +14,6 @@ to compile your file that contains an `import re` statement.
 
 ## TODO
 
-- Add methods for regex-split and regex-replace
+- Add method regex-replace
+- Organize the code by cleaning up unnecessary function calls and other things
+- Look into known bugs

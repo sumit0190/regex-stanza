@@ -4,9 +4,18 @@ defpackage test:
    import re
 
 ;Some examples
+
 ;Example with named groups
 val x = regex-search(\<R>(?<intpart>\d+)\.(?<decpart>\d+)<R>, "3.33blhabaldfjdafd1.45")
+print(x)
+
 ;The usual regex
 val y = regex-search("(\\w+):(\\d+)", "ruby:1234")
-print(x)
 print(y)
+
+;Split using regex
+val z = regex-split(",", "a,b,c,d,e..........,f")
+print(z)
+;The following example doesn't work (prints out only 2 values)
+val z2 = regex-split(\<R>[\s,]+<R>, "hypertext language, programming")
+print(z2)

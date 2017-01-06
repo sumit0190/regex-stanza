@@ -24,6 +24,10 @@ defmethod print (o: OutputStream, r: regex) :
 var matches_found = Vector<String>()
 ;And this map will hold the named capture group names and matches found
 var named_matches_found = HashTable<String,Vector<String>>()
+;For regex split operations, this vector holds all the 'positions' where our regex was found
+var positions_found = Vector<Int>()
+;And this vector holds the sizes of those matches
+var sizes = Vector<Int>()
 
 ;------------------------------FUNCTIONS CALLED FROM C--------------------------------
 
@@ -43,14 +47,37 @@ extern defn append_named_matches_found (name: ptr<byte>, matched: ptr<byte>) -> 
       add(get(named_matches_found, String(name)), String(matched))
    return 0
 
+;This function is called from C to append the positions and sizes of the matches
+;found
+extern defn append_positions (p: int, s: int) -> int :
+   add(positions_found, new Int{p})
+   add(sizes, new Int{s})
+   return 0
+
 ;-------------------------------FUNCTIONS DEFINED IN C--------------------------------
 
 ;C-function to start a regex search
 extern pcre_search : (ptr<byte>, ptr<byte>) -> int
 
+;-------------------------------PRIVATE HELPERS---------------------------------------
+
+;Technically we can just expose this function to the user and have them call this
+;directly, similar to regex-search. I could not figure out a few things about
+;LoStanza functions, so I was forced to do this.
+lostanza defn regex-split-lostanza (pattern: ref<String>, subject: ref<String>) -> ref<False> :
+   call-c pcre_search(addr!(pattern.chars), addr!(subject.chars))
+   return false
+
+;This function simply sets our global variables to their default values
+defn set-defaults () -> False :
+   matches_found = Vector<String>()
+   named_matches_found = HashTable<String,Vector<String>>()
+   positions_found = Vector<Int>()
+   sizes = Vector<Int>()
+
 ;-----------------------------EXPOSED PUBLIC FUNCTIONS--------------------------------
 
-;Methods to access the regex object fields, since the struct itself is public
+;Methods to access the regex object fields, since the struct itself isn't public
 public defn matches (r: regex) -> Vector<String> :
    m(r)
 
@@ -62,6 +89,19 @@ public defn groups (r: regex) -> HashTable<String,Vector<String>> :
 public lostanza defn regex-search (pattern: ref<String>, subject: ref<String>) -> ref<regex> :
    call-c pcre_search(addr!(pattern.chars), addr!(subject.chars))
    val final = regex(matches_found, named_matches_found)
-   matches_found = Vector<String>()
-   named_matches_found = HashTable<String,Vector<String>>()
+   set-defaults()
    return final
+
+;This is the regex-split function. Takes in two arguments: 1) the regex 2) the string
+;to search. Return a vector of strings
+public defn regex-split (pattern: String, subject: String) -> Vector<String> :
+   regex-split-lostanza(pattern, subject)
+   var final = Vector<String>()
+   var index:Int = 0
+   for i in 0 to length(positions_found) do:
+      val p:Int = positions_found[i]
+      val s:Int = sizes[i]
+      add(final, subject[index through p - 1])
+      index = p + s
+   set-defaults()
+   final
