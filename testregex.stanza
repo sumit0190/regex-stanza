@@ -15,7 +15,10 @@ print(y)
 
 ;Split using regex
 val z = regex-split(",", "a,b,c,d,e..........,f")
-print(z)
-;The following example doesn't work (prints out only 2 values)
+println(z)
+;This one is from the examples listed on the webpage for php's regex split
 val z2 = regex-split(\<R>[\s,]+<R>, "hypertext language, programming")
-print(z2)
+println(z2)
+;And this one is from the examples listed on the webpage for Python's re.split
+val z3 = regex-split(\<R>\W+<R>, "Words, words, words,w")
+println(z3)

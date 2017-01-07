@@ -98,10 +98,13 @@ public defn regex-split (pattern: String, subject: String) -> Vector<String> :
    regex-split-lostanza(pattern, subject)
    var final = Vector<String>()
    var index:Int = 0
+   ;This loop handles all the splits from 1 to n-1
    for i in 0 to length(positions_found) do:
       val p:Int = positions_found[i]
       val s:Int = sizes[i]
       add(final, subject[index through p - 1])
       index = p + s
+   ;And this handles the last split
+   add(final, subject[index through length(subject) - 1])
    set-defaults()
    final
